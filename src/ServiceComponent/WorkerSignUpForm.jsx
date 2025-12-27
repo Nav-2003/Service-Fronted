@@ -4,7 +4,7 @@ import { useContext, useEffect, useState } from "react";
 import SuccessOverlay from "./SuccessAuth";
 import socket from "../config/socket";
 import { AuthContext } from "../config/AuthContext";
-
+const Api=import.meta.env.VITE_BACKEND_API;
 
 
 var flag=false;
@@ -67,7 +67,7 @@ export default function WorkerSignupForm() {
     console.log("dsnkjfs",lat,lng);
 
     const response = await fetch(
-      "http://localhost:3000/api/workerAuth/signUp",
+      `${Api}/api/workerAuth/signUp`,
       {
         method: "PUT",
         headers: {

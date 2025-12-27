@@ -5,7 +5,7 @@ import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../config/AuthContext";
 import QuickMatch from "./AssignCustomer";
 import { useNavigate } from "react-router-dom";
-
+const Api=import.meta.env.VITE_BACKEND_API;
 
 export default function WorkerWaitingForCustomer({ workerName = "Worker" }) {
   const [showAssignment,setShowAssignment]=useState(false);
@@ -104,7 +104,7 @@ export default function WorkerWaitingForCustomer({ workerName = "Worker" }) {
       {showAssignment&&(<QuickMatch 
           data={data}
           onAccept={async()=>{
-              const response=await fetch('http://localhost:3000/api/worker/accept',{
+              const response=await fetch(`${Api}/api/worker/accept`,{
                    method:"PUT",
                    headers:{
                       "Content-Type":"application/json"
@@ -117,7 +117,7 @@ export default function WorkerWaitingForCustomer({ workerName = "Worker" }) {
             navigate('/serivice/liveTracking')
           }}
           onReject={async()=>{
-             const response=await fetch('http://localhost:3000/api/worker/reject',{
+             const response=await fetch(`${Api}/api/worker/reject`,{
                    method:"PUT",
                    headers:{
                       "Content-Type":"application/json"

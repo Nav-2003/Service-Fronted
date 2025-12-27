@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Mail,Lock,User,Phone,Eye,EyeOff,X,} from "lucide-react";
 import { useContext, useState } from "react";
 import { AuthContext } from "../config/AuthContext";
+const Api=import.meta.env.VITE_BACKEND_API;
 
 export default function SignupOverlay({ onClose, onSubmit }) {
   const{setFolkEmail,folkEmail}=useContext(AuthContext);
@@ -14,7 +15,7 @@ export default function SignupOverlay({ onClose, onSubmit }) {
 
   const handleSubmit = async(e) => {
     e.preventDefault(); 
-    const response=await fetch('http://localhost:3000/api/userAuth/signUp',{
+    const response=await fetch(`${Api}/api/userAuth/signUp`,{
       method:"PUT",
       headers:{
         "Content-Type":"application/json"

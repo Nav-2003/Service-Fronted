@@ -1,8 +1,9 @@
+const Api=import.meta.env.VITE_BACKEND_API;
 const handleCancelButton = async ({ type, email }) => {
   const url =
     type === "customer"
-      ? "http://localhost:3000/api/service/cancelWorker"
-      : "http://localhost:3000/api/service/cancelCustomer";
+      ? `${Api}/api/service/cancelWorker`
+      : `${Api}/api/service/cancelCustomer`;
 
   const response = await fetch(url, {
     method: "PUT",

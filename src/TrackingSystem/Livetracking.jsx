@@ -21,6 +21,7 @@ export default function LiveTrackingPage() {
   const [customer, setCustomer] = useState(null);
   const [worker, setWorker] = useState(null);
   const [userDetail,setUserDetail]=useState();
+  const Api=import.meta.env.VITE_BACKEND_API;
 
   /* ================= FETCH ASSIGNED EMAIL ================= */
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function LiveTrackingPage() {
 
     const fetchAssigned = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/email/getEmail", {
+        const res = await fetch(`${Api}/api/email/getEmail`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: folkEmail }),

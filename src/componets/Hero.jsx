@@ -13,6 +13,8 @@ const serviceOptions = ["Plumber","Electrician","Mechanic","Barber","Carpenter",
   "Driver",
 ];
 
+const Api=import.meta.env.VITE_BACKEND_API;
+
 const Hero = () => {
 
   const {signIn,signUp}=useContext(AuthContext);
@@ -59,7 +61,7 @@ const handleSearchButton=async()=>{
        setShowSignIn(true);
        return;
      }
-     const response=await fetch('http://localhost:3000/api/serviceAvailable/getServiceData',{
+     const response=await fetch(`${Api}/api/serviceAvailable/getServiceData`,{
          method:'POST',
          headers:{
            'Content-Type':'application/json'

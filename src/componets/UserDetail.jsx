@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef, useContext } from "react";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
-
+const Api=import.meta.env.VITE_BACKEND_API;
 import BookingPendingOverlay from "../BookingComponent/BookingPending";
 import ProviderList from "../BookingComponent/ProviderList";
 import AssignedWorkerPanel from "../BookingComponent/AssignedWorkerPanel";
@@ -95,7 +95,7 @@ export default function LocationSearchUI() {
   const handleBookNow = async (email) => {
     setShowPending(true);
 
-    await fetch("http://localhost:3000/api/worker/assignWorker", {
+    await fetch(`${Api}/api/worker/assignWorker`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

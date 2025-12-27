@@ -5,6 +5,8 @@ import { AuthContext } from "../config/AuthContext";
 import SuccessOverlay from "../ServiceComponent/SuccessAuth";
 import { useNavigate } from "react-router-dom";
 
+const Api=import.meta.env.VITE_BACKEND_API;
+
 export default function SignInOverlay({ onClose, onSubmit }) {
   const {signIn,setSignIn,userSign,setUserSign,workerSign,setWorkerSign,setFolkEmail,folkEmail}=useContext(AuthContext);
   const [showPass, setShowPass] = useState(false);
@@ -30,7 +32,7 @@ export default function SignInOverlay({ onClose, onSubmit }) {
   const handleSignInButton=async()=>{
        const {lat,lng}=getLocation();
        const response = await fetch(
-        "http://localhost:3000/api/userAuth/signIn",
+        `${Api}/api/userAuth/signIn`,
         {
           method: "PUT",
           headers: {
@@ -45,10 +47,11 @@ export default function SignInOverlay({ onClose, onSubmit }) {
       setSignIn(data.sign);
       setUserSign(data.user);
       setWorkerSign(data.worker);
+      setClose(data.worker);
       if(userSign){setClose(false);navigate('/');}
     }
 
-  return ((!folkEmail)&&
+  return ((close)&&
   <div
       className="fixed inset-0 z-[9999]
                  bg-black/50 backdrop-blur-md
