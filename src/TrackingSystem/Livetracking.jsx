@@ -15,7 +15,7 @@ L.Icon.Default.mergeOptions({
 });
 
 export default function LiveTrackingPage() {
-  let { folkEmail } = useContext(AuthContext);
+  let { folkEmail,bookingId } = useContext(AuthContext);
 
   const [assignEmail, setAssignEmail] = useState(null);
   const [customer, setCustomer] = useState(null);
@@ -32,7 +32,7 @@ export default function LiveTrackingPage() {
         const res = await fetch(`${Api}/api/email/getEmail`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: folkEmail }),
+          body: JSON.stringify({ email: folkEmail,bookingId }),
         });
         const data = await res.json();
         setUserDetail({name:data.name,type:data.type,email:data.email,phone:data.phone})

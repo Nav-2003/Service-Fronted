@@ -40,10 +40,6 @@ export default function BookingPendingOverlay({
 
     const timer = setInterval(() => {
       setTimeLeft((t) => t - 1);
-
-      socket.emit("checkWorkerAssign", {
-        email: folkEmail,
-      });
     }, 1000);
 
     return () => clearInterval(timer);

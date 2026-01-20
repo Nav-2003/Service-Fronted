@@ -10,21 +10,22 @@ const Api=import.meta.env.VITE_BACKEND_API;
 export default function WorkerWaitingForCustomer({ workerName = "Worker" }) {
   const [showAssignment,setShowAssignment]=useState(false);
   const [data,setdata]=useState({});
-  const {folkEmail}=useContext(AuthContext);
+  const {folkEmail,setBookingId,bookingId}=useContext(AuthContext);
   const navigate=useNavigate();
 
   useEffect(() => {
-  const interval = setInterval(() => {
-    socket.emit("checkAssignCustomer", { email: folkEmail });
-  }, 3000);
+  // const interval = setInterval(() => {
+  //   socket.emit("checkAssignCustomer", { email: folkEmail });
+  // }, 3000);
 
-  socket.on("assignCustmorResult", ({distance,name}) => {
+  socket.on("assignCustmorResult", ({distance,name,bookingId}) => {
     setdata({name:name,distance:distance})
+    setBookingId(bookingId);
     setShowAssignment(true);
   });
 
   return () => {
-    clearInterval(interval);
+  //  clearInterval(interval);
     socket.off("assignCustmorResult");
   };
 }, []);
@@ -109,7 +110,7 @@ export default function WorkerWaitingForCustomer({ workerName = "Worker" }) {
                    headers:{
                       "Content-Type":"application/json"
                    },
-                   body:JSON.stringify({email:folkEmail})
+                   body:JSON.stringify({email:folkEmail,bookingId})
              });
             const data=await response.json();
             console.log(data);
@@ -122,7 +123,7 @@ export default function WorkerWaitingForCustomer({ workerName = "Worker" }) {
                    headers:{
                       "Content-Type":"application/json"
                    },
-                   body:JSON.stringify({email:folkEmail})
+                   body:JSON.stringify({email:folkEmail,bookingId})
              });
             const data=await response.json();
             console.log(data);

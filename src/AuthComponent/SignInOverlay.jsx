@@ -4,6 +4,10 @@ import { useContext, useState } from "react";
 import { AuthContext } from "../config/AuthContext";
 import SuccessOverlay from "../ServiceComponent/SuccessAuth";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import HashLoader from "react-spinners/HashLoader";
+import socket from "../config/socket";
+
 
 const Api=import.meta.env.VITE_BACKEND_API;
 
@@ -13,24 +17,35 @@ export default function SignInOverlay({ onClose, onSubmit }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [close,setClose]=useState(true);
+  const [location,setLocation]=useState();
+  const [loading,setLoading]=useState(false);
+
   
   const navigate=useNavigate();
  
-  const getLocation = () =>
-  new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        resolve({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        });
-      },
-      (err) => reject(err)
-    );
-  });
+ useEffect(() => {
+
+  if (!navigator.geolocation) return;
+  const id = navigator.geolocation.watchPosition(
+    (pos) => {
+      setLocation({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+      });
+    },
+    (err) => console.error(err),
+    {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 30000,
+    }
+  );
+
+  return () => navigator.geolocation.clearWatch(id);
+}, []);
 
   const handleSignInButton=async()=>{
-       const {lat,lng}=getLocation();
+       setLoading(true);
        const response = await fetch(
         `${Api}/api/userAuth/signIn`,
         {
@@ -39,7 +54,7 @@ export default function SignInOverlay({ onClose, onSubmit }) {
             "Content-Type": "application/json",
           },
           credentials:"include",
-          body: JSON.stringify({email, password,lat,lng}),
+          body: JSON.stringify({email, password,lat:location.lat,lng:location.lng}),
         } 
       );
       setFolkEmail(email);
@@ -48,6 +63,8 @@ export default function SignInOverlay({ onClose, onSubmit }) {
       setUserSign(data.user);
       setWorkerSign(data.worker);
       setClose(data.worker);
+      setLoading(false);
+      socket.emit("register-Socket",{email});
       if(userSign){setClose(false);navigate('/');}
     }
 
@@ -129,20 +146,30 @@ export default function SignInOverlay({ onClose, onSubmit }) {
           </div>
 
         {/* SIGN IN BUTTON */}
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={handleSignInButton}
-          className="w-full py-4 rounded-2xl mt-10
-                     bg-gradient-to-r from-blue-600 to-indigo-600
-                     text-white font-semibold text-lg
-                     shadow-[0_20px_40px_rgba(37,99,235,0.35)]
-                     hover:shadow-[0_30px_60px_rgba(37,99,235,0.5)]
-                     transition-all duration-300"
-        >
-          Sign In
-
-        </motion.button>
+      <motion.button
+  whileHover={{ scale: loading ? 1 : 1.03 }}
+  whileTap={{ scale: loading ? 1 : 0.97 }}
+  onClick={handleSignInButton}
+  disabled={loading}
+  className={`w-full py-4 rounded-2xl mt-10
+    bg-gradient-to-r from-blue-600 to-indigo-600
+    text-white font-semibold text-lg
+    shadow-[0_20px_40px_rgba(37,99,235,0.35)]
+    hover:shadow-[0_30px_60px_rgba(37,99,235,0.5)]
+    transition-all duration-300
+    flex items-center justify-center
+    ${loading ? "cursor-not-allowed opacity-90" : ""}
+  `}
+>
+  {loading ? (
+    <div className="flex items-center gap-3">
+      <HashLoader size={22} color="white" />
+      <span className="tracking-wide">Signing in...</span>
+    </div>
+  ) : (
+    "Sign In"
+  )}
+</motion.button>
 
         {/* FOOTER */}
         <p className="text-xs text-gray-500 text-center mt-5">

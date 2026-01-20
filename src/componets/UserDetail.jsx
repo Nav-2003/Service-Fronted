@@ -4,7 +4,9 @@ import React, { useEffect, useState, useRef, useContext } from "react";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
-const Api=import.meta.env.VITE_BACKEND_API;
+
+const Api = import.meta.env.VITE_BACKEND_API;
+
 import BookingPendingOverlay from "../BookingComponent/BookingPending";
 import ProviderList from "../BookingComponent/ProviderList";
 import AssignedWorkerPanel from "../BookingComponent/AssignedWorkerPanel";
@@ -44,13 +46,52 @@ function FlyToSelected({ position }) {
 /* ================= COMPONENT ================= */
 
 export default function LocationSearchUI() {
-  const { folkEmail } = useContext(AuthContext);
+  const { folkEmail,setBookingId } = useContext(AuthContext);
   const location = useLocation();
 
-  const providers = location.state?.data || [];
+  /* ================= PERSISTED DATA ================= */
+
+  // Restore providers
+  const storedProviders = JSON.parse(
+    sessionStorage.getItem("providers")
+  );
+
+  const providers =
+    location.state?.data ||
+    storedProviders ||
+    [];
+
+  // Restore customer location
+  const storedLocation = JSON.parse(
+    sessionStorage.getItem("customerLocation")
+  );
+
   const customer = location.state
     ? [location.state.lat, location.state.lng]
+    : storedLocation
+    ? [storedLocation.lat, storedLocation.lng]
     : [25.4432, 81.8479];
+
+  /* ================= SAVE DATA ON FIRST LOAD ================= */
+
+  useEffect(() => {
+    if (location.state?.data) {
+      sessionStorage.setItem(
+        "providers",
+        JSON.stringify(location.state.data)
+      );
+
+      sessionStorage.setItem(
+        "customerLocation",
+        JSON.stringify({
+          lat: location.state.lat,
+          lng: location.state.lng,
+        })
+      );
+    }
+  }, []);
+
+  /* ================= STATE ================= */
 
   const [selectedId, setSelectedId] = useState(null);
   const [showPending, setShowPending] = useState(false);
@@ -58,13 +99,15 @@ export default function LocationSearchUI() {
 
   const cardRefs = useRef({});
 
-  /* Lock scroll */
+  /* ================= LOCK SCROLL ================= */
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => (document.body.style.overflow = "auto");
   }, []);
 
-  /* Scroll selected card */
+  /* ================= AUTO SCROLL CARD ================= */
+
   useEffect(() => {
     if (selectedId && cardRefs.current[selectedId]) {
       cardRefs.current[selectedId].scrollIntoView({
@@ -74,28 +117,34 @@ export default function LocationSearchUI() {
     }
   }, [selectedId]);
 
-  /* Selected provider (DERIVED STATE) */
-  const selectedProvider = providers.find((p) => p._id === selectedId);
+  /* ================= DERIVED STATE ================= */
 
-  /* 🔒 CRITICAL FIX — DO NOT LOSE SELECTION AFTER ACCEPT */
+  const selectedProvider = providers.find(
+    (p) => p._id === selectedId
+  );
+
+  /* ================= KEEP SELECTION AFTER ACCEPT ================= */
+
   useEffect(() => {
     if (jobAccepted && !selectedId && providers.length > 0) {
-      // keep a valid provider when job is accepted
       setSelectedId(providers[0]._id);
     }
   }, [jobAccepted]);
 
-  /* Sort providers */
+  /* ================= SORT PROVIDERS ================= */
+
   const sortedProviders = [...providers].sort((a, b) => {
     if (a._id === selectedId) return -1;
     if (b._id === selectedId) return 1;
     return 0;
   });
 
+  /* ================= BOOK HANDLER ================= */
+
   const handleBookNow = async (email) => {
     setShowPending(true);
 
-    await fetch(`${Api}/api/worker/assignWorker`, {
+    const response=await fetch(`${Api}/api/worker/assignWorker`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -103,12 +152,18 @@ export default function LocationSearchUI() {
         workerEmail: email,
       }),
     });
+    const data=await response.json();
+    setBookingId(data.bookingId);
   };
+
+  /* ================= RENDER ================= */
 
   return (
     <div className="h-screen w-full overflow-hidden flex flex-col lg:flex-row bg-gray-50">
+
       {/* ================= MAP ================= */}
       <div className="flex-1 relative order-first lg:order-last">
+
         {/* SEARCH BAR */}
         <div className="absolute top-4 lg:top-6 left-1/2 -translate-x-1/2 z-[1000] w-[90%] sm:w-[70%] lg:w-[60%] max-w-xl">
           <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3">
@@ -141,7 +196,11 @@ export default function LocationSearchUI() {
             <Marker
               key={p._id}
               position={[p.lat, p.lng]}
-              icon={p._id === selectedId ? selectedWorkerIcon : workerIcon}
+              icon={
+                p._id === selectedId
+                  ? selectedWorkerIcon
+                  : workerIcon
+              }
               eventHandlers={{
                 click: () => setSelectedId(p._id),
               }}
@@ -154,7 +213,10 @@ export default function LocationSearchUI() {
 
           {selectedProvider && (
             <FlyToSelected
-              position={[selectedProvider.lat, selectedProvider.lng]}
+              position={[
+                selectedProvider.lat,
+                selectedProvider.lng,
+              ]}
             />
           )}
         </MapContainer>
@@ -164,7 +226,7 @@ export default function LocationSearchUI() {
         </button>
       </div>
 
-      {/* ================= LEFT PANEL (UNCHANGED) ================= */}
+      {/* ================= LEFT PANEL ================= */}
       {!jobAccepted ? (
         <ProviderList
           sortedProviders={sortedProviders}
@@ -178,7 +240,7 @@ export default function LocationSearchUI() {
         <AssignedWorkerPanel worker={selectedProvider} />
       )}
 
-      {/* ================= OVERLAY (UNCHANGED) ================= */}
+      {/* ================= OVERLAY ================= */}
       {showPending && selectedProvider && (
         <BookingPendingOverlay
           provider={selectedProvider}

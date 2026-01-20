@@ -8,9 +8,12 @@ export const AuthProvider = ({ children }) => {
   const [userSign,setUserSign]=useState(false);
   const [workerSign,setWorkerSign]=useState(false);
   const [folkEmail,setFolkEmail]=useState("");
+  const [bookingId,setBookingId]=useState();
 
   return (
-    <AuthContext.Provider value={{signIn,setSignIn,signUp,setSignUp,userSign,setUserSign,workerSign,setWorkerSign,folkEmail,setFolkEmail}}>
+    <AuthContext.Provider value={{signIn,setSignIn,signUp,setSignUp,userSign,setUserSign,workerSign,
+      setWorkerSign,folkEmail,setFolkEmail,bookingId,setBookingId
+    }}>
       {children}
     </AuthContext.Provider>
   );

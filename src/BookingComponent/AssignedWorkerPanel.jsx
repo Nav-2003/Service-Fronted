@@ -6,7 +6,7 @@ import handleCancelButton from "../config/handleCancelButton";
 import { AuthContext } from "../config/AuthContext";
 
 export default function AssignedWorkerPanel({ worker }) {
-  const { folkEmail } = useContext(AuthContext);
+  const { folkEmail,bookingId } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [workerEmail, setWorkerEmail] = useState("");
@@ -31,7 +31,7 @@ export default function AssignedWorkerPanel({ worker }) {
     if (!workerEmail || !customerEmail) return;
 
     const intervalId = setInterval(() => {
-      socket.emit("cancelBooking", { email: workerEmail });
+    //  socket.emit("cancelBooking", { email: folkEmail });
       socket.emit("liveDistance", { workerEmail, customerEmail });
     }, 1000);
 
@@ -89,8 +89,7 @@ export default function AssignedWorkerPanel({ worker }) {
         <button
           onClick={() =>
             handleCancelButton({
-              type: worker.type,
-              email: folkEmail,
+              bookingId:bookingId,
             })
           }
           className="mt-4 w-full flex items-center justify-center gap-2 py-4 rounded-2xl
