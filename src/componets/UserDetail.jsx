@@ -46,7 +46,7 @@ function FlyToSelected({ position }) {
 /* ================= COMPONENT ================= */
 
 export default function LocationSearchUI() {
-  const { folkEmail,setBookingId } = useContext(AuthContext);
+  const { folkEmail,setBookingId,bookingId } = useContext(AuthContext);
   const location = useLocation();
 
   /* ================= PERSISTED DATA ================= */
@@ -244,7 +244,15 @@ export default function LocationSearchUI() {
       {showPending && selectedProvider && (
         <BookingPendingOverlay
           provider={selectedProvider}
-          onClose={() => setShowPending(false)}
+          onClose={() =>{ setShowPending(false)
+              const data=fetch(`${Api}/api/worker/cancel`,{
+                  method:'PUT',
+                  headers:{
+                     "Content-Type": "application/json" 
+                  },
+                  body:JSON.stringify({bookingId})
+              })
+          }}
           onAccept={() => setJobAccepted(true)}
         />
       )}

@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import AssignedWorkerPanel from "../BookingComponent/AssignedWorkerPanel";
 import { AuthContext } from "../config/AuthContext";
+import FloatingChat from "./FloatingChat";
 
 /* ================= FIX LEAFLET ICON ================= */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -159,6 +160,7 @@ export default function LiveTrackingPage() {
 
           <div className="p-5">
             {worker&&customer&&<AssignedWorkerPanel worker={userDetail}/>}
+            {<FloatingChat data={bookingId}/>}
           </div>
         </aside>
 

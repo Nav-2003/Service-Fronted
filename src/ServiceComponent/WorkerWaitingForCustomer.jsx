@@ -14,9 +14,9 @@ export default function WorkerWaitingForCustomer({ workerName = "Worker" }) {
   const navigate=useNavigate();
 
   useEffect(() => {
-  // const interval = setInterval(() => {
-  //   socket.emit("checkAssignCustomer", { email: folkEmail });
-  // }, 3000);
+  socket.on("customerCancel",()=>{
+       setShowAssignment(false);
+  });
 
   socket.on("assignCustmorResult", ({distance,name,bookingId}) => {
     setdata({name:name,distance:distance})
@@ -25,7 +25,7 @@ export default function WorkerWaitingForCustomer({ workerName = "Worker" }) {
   });
 
   return () => {
-  //  clearInterval(interval);
+    socket.off("customerCancel");
     socket.off("assignCustmorResult");
   };
 }, []);
