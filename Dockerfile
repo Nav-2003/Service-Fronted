@@ -6,7 +6,7 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
-RUN NODE_OPTIONS=--max_old_space_size=4096 npm run build
+RUN  npm run build
 
 FROM nginx
 RUN rm -rf /etc/nginx/conf.d/default.conf
