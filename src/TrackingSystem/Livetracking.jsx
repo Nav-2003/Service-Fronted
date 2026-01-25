@@ -36,7 +36,7 @@ export default function LiveTrackingPage() {
           body: JSON.stringify({ email: folkEmail,bookingId }),
         });
         const data = await res.json();
-        setUserDetail({name:data.name,type:data.type,email:data.email,phone:data.phone})
+        setUserDetail({name:data.name,type:data.type,email:data.email,phone:data.phone,bookingId})
         setAssignEmail(data.email);
       } catch (err) {
         console.error("Assign email error:", err);
@@ -160,7 +160,7 @@ export default function LiveTrackingPage() {
 
           <div className="p-5">
             {worker&&customer&&<AssignedWorkerPanel worker={userDetail}/>}
-            {<FloatingChat data={bookingId}/>}
+            {<FloatingChat data={userDetail}/>}
           </div>
         </aside>
 
