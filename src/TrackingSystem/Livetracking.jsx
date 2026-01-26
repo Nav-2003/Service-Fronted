@@ -160,8 +160,10 @@ export default function LiveTrackingPage() {
 
           <div className="p-5">
             {worker&&customer&&<AssignedWorkerPanel worker={userDetail}/>}
-            {<FloatingChat data={userDetail}/>}
+            {worker&&customer&&<FloatingChat data={userDetail}/>}
           </div>
+{/* WORK COMPLETED BUTTON */}
+
         </aside>
 
       </div>

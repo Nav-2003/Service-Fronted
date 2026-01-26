@@ -104,6 +104,21 @@ export default function AssignedWorkerPanel({ worker }) {
           <X className="w-5 h-5" />
           Cancel Booking
         </button>
+        <button
+  className="
+    mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-2xl
+    text-base font-semibold text-white
+    bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500
+    shadow-[0_12px_30px_rgba(16,185,129,0.45)]
+    hover:shadow-[0_20px_45px_rgba(16,185,129,0.65)]
+    hover:scale-[1.03]
+    active:scale-[0.97]
+    transition-all duration-300
+  "
+>
+  <span className="text-lg">✔</span>
+  Work Completed
+</button>
       </div>
     </div>
   );
