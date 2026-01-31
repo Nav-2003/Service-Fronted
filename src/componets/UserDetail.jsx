@@ -5,12 +5,12 @@ import "leaflet/dist/leaflet.css";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 
-const Api = import.meta.env.VITE_BACKEND_API;
-
 import BookingPendingOverlay from "../BookingComponent/BookingPending";
 import ProviderList from "../BookingComponent/ProviderList";
 import AssignedWorkerPanel from "../BookingComponent/AssignedWorkerPanel";
 import { AuthContext } from "../config/AuthContext";
+
+const Api = import.meta.env.VITE_BACKEND_API;
 
 /* ================= ICONS ================= */
 
@@ -46,58 +46,133 @@ function FlyToSelected({ position }) {
 /* ================= COMPONENT ================= */
 
 export default function LocationSearchUI() {
-  const { folkEmail,setBookingId,bookingId } = useContext(AuthContext);
+  const { folkEmail, setBookingId, bookingId, service } =
+    useContext(AuthContext);
+
   const location = useLocation();
 
-  /* ================= PERSISTED DATA ================= */
+  /* ================= CUSTOMER LOCATION STATE ================= */
 
-  // Restore providers
-  const storedProviders = JSON.parse(
-    sessionStorage.getItem("providers")
-  );
+  const [customerLocation, setCustomerLocation] = useState(() => {
+    if (location.state?.lat && location.state?.lng) {
+      return {
+        lat: location.state.lat,
+        lng: location.state.lng,
+      };
+    }
+    return null;
+  });
 
-  const providers =
-    location.state?.data ||
-    storedProviders ||
-    [];
-
-  // Restore customer location
-  const storedLocation = JSON.parse(
-    sessionStorage.getItem("customerLocation")
-  );
-
-  const customer = location.state
-    ? [location.state.lat, location.state.lng]
-    : storedLocation
-    ? [storedLocation.lat, storedLocation.lng]
+  const customer = customerLocation
+    ? [customerLocation.lat, customerLocation.lng]
     : [25.4432, 81.8479];
 
-  /* ================= SAVE DATA ON FIRST LOAD ================= */
+  /* ================= PROVIDERS ================= */
 
-  useEffect(() => {
-    if (location.state?.data) {
-      sessionStorage.setItem(
-        "providers",
-        JSON.stringify(location.state.data)
-      );
-
-      sessionStorage.setItem(
-        "customerLocation",
-        JSON.stringify({
-          lat: location.state.lat,
-          lng: location.state.lng,
-        })
-      );
-    }
-  }, []);
-
-  /* ================= STATE ================= */
+  const [providers, setProviders] = useState(
+    location.state?.data || []
+  );
 
   const [selectedId, setSelectedId] = useState(null);
   const [showPending, setShowPending] = useState(false);
   const [jobAccepted, setJobAccepted] = useState(false);
 
   const cardRefs = useRef({});
+
+  /* ================= FETCH LOCATION IF MISSING ================= */
+
+  useEffect(() => {
+    if (!customerLocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setCustomerLocation({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          });
+        },
+        () => console.warn("Location permission denied")
+      );
+    }
+  }, []);
+
+  /* ================= IMPROVED POLLING ================= */
+
+  useEffect(() => {
+    if (!customerLocation || !service) return;
+
+    let intervalId;
+    let isFetching = false;
+
+    const fetchProviders = async () => {
+      if (isFetching) return; // prevent overlap
+      isFetching = true;
+
+      try {
+        const response = await fetch(
+          `${Api}/api/serviceAvailable/getServiceData`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              service,
+              lat: customerLocation.lat,
+              lng: customerLocation.lng,
+            }),
+          }
+        );
+
+        const result = await response.json();
+
+        setProviders((prev) => {
+          if (
+            selectedId &&
+            !result.data?.find((p) => p._id === selectedId)
+          ) {
+            setSelectedId(null);
+          }
+          return result.data || [];
+        });
+      } catch (err) {
+        console.error("Polling error:", err);
+      } finally {
+        isFetching = false;
+      }
+    };
+
+    // initial fetch
+    fetchProviders();
+
+    const startPolling = () => {
+      if (!intervalId) {
+        intervalId = setInterval(fetchProviders, 5000);
+      }
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    // pause when tab inactive
+    const handleVisibility = () => {
+      if (document.hidden) stopPolling();
+      else startPolling();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    startPolling();
+
+    return () => {
+      stopPolling();
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibility
+      );
+    };
+  }, [customerLocation, service, selectedId]);
 
   /* ================= LOCK SCROLL ================= */
 
@@ -117,21 +192,11 @@ export default function LocationSearchUI() {
     }
   }, [selectedId]);
 
-  /* ================= DERIVED STATE ================= */
+  /* ================= DERIVED ================= */
 
   const selectedProvider = providers.find(
     (p) => p._id === selectedId
   );
-
-  /* ================= KEEP SELECTION AFTER ACCEPT ================= */
-
-  useEffect(() => {
-    if (jobAccepted && !selectedId && providers.length > 0) {
-      setSelectedId(providers[0]._id);
-    }
-  }, [jobAccepted]);
-
-  /* ================= SORT PROVIDERS ================= */
 
   const sortedProviders = [...providers].sort((a, b) => {
     if (a._id === selectedId) return -1;
@@ -144,15 +209,20 @@ export default function LocationSearchUI() {
   const handleBookNow = async (email) => {
     setShowPending(true);
 
-    const response=await fetch(`${Api}/api/worker/assignWorker`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        custmorEmail: folkEmail,
-        workerEmail: email,
-      }),
-    });
-    const data=await response.json();
+    const response = await fetch(
+      `${Api}/api/worker/assignWorker`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          custmorEmail: folkEmail,
+          workerEmail: email,
+          service,
+        }),
+      }
+    );
+
+    const data = await response.json();
     setBookingId(data.bookingId);
   };
 
@@ -160,32 +230,9 @@ export default function LocationSearchUI() {
 
   return (
     <div className="h-screen w-full overflow-hidden flex flex-col lg:flex-row bg-gray-50">
-
-      {/* ================= MAP ================= */}
+      {/* MAP */}
       <div className="flex-1 relative order-first lg:order-last">
-
-        {/* SEARCH BAR */}
-        <div className="absolute top-4 lg:top-6 left-1/2 -translate-x-1/2 z-[1000] w-[90%] sm:w-[70%] lg:w-[60%] max-w-xl">
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3">
-            <Search className="w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search services near you"
-              className="flex-1 bg-transparent outline-none text-gray-800 placeholder-gray-400 text-sm"
-            />
-            <button className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-xl">
-              Search
-            </button>
-          </div>
-        </div>
-
-        {/* MAP */}
-        <MapContainer
-          center={customer}
-          zoom={13}
-          className="h-full w-full"
-          zoomControl={false}
-        >
+        <MapContainer center={customer} zoom={13} className="h-full w-full">
           <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
 
           <Marker position={customer} icon={customerIcon}>
@@ -195,7 +242,7 @@ export default function LocationSearchUI() {
           {providers.map((p) => (
             <Marker
               key={p._id}
-              position={[p.lat, p.lng]}
+              position={[Number(p.lat), Number(p.lng)]}
               icon={
                 p._id === selectedId
                   ? selectedWorkerIcon
@@ -214,8 +261,8 @@ export default function LocationSearchUI() {
           {selectedProvider && (
             <FlyToSelected
               position={[
-                selectedProvider.lat,
-                selectedProvider.lng,
+                Number(selectedProvider.lat),
+                Number(selectedProvider.lng),
               ]}
             />
           )}
@@ -226,7 +273,7 @@ export default function LocationSearchUI() {
         </button>
       </div>
 
-      {/* ================= LEFT PANEL ================= */}
+      {/* LEFT PANEL */}
       {!jobAccepted ? (
         <ProviderList
           sortedProviders={sortedProviders}
@@ -240,19 +287,12 @@ export default function LocationSearchUI() {
         <AssignedWorkerPanel worker={selectedProvider} />
       )}
 
-      {/* ================= OVERLAY ================= */}
+      {/* OVERLAY */}
       {showPending && selectedProvider && (
         <BookingPendingOverlay
           provider={selectedProvider}
-          onClose={() =>{ setShowPending(false)
-              const data=fetch(`${Api}/api/worker/cancel`,{
-                  method:'PUT',
-                  headers:{
-                     "Content-Type": "application/json" 
-                  },
-                  body:JSON.stringify({bookingId})
-              })
-          }}
+          bookingId={bookingId}
+          onClose={() => setShowPending(false)}
           onAccept={() => setJobAccepted(true)}
         />
       )}

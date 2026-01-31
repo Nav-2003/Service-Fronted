@@ -11,6 +11,7 @@ export default function FloatingChat({ data }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const bottomRef = useRef(null);
+  console.log(bookingId)
 
   /* ================= JOIN ROOM ================= */
   useEffect(() => {

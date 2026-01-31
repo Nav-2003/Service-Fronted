@@ -5,8 +5,11 @@ import socket from "../config/socket";
 import { AuthContext } from "../config/AuthContext";
 import { useNavigate } from "react-router-dom";
 
+
+const Api = import.meta.env.VITE_BACKEND_API;
 export default function BookingPendingOverlay({
   provider,
+  bookingId,
   onClose,
   onAccept,
 }) {
@@ -26,7 +29,7 @@ export default function BookingPendingOverlay({
       if (msg.result) {
         onAccept();
         onClose();
-        navigate('serivice/liveTracking');
+        navigate('/serivice/liveTracking');
       }
     });
     return () => {
@@ -57,6 +60,18 @@ export default function BookingPendingOverlay({
     return () => clearTimeout(closeTimer);
   }, [rejected]);
 
+  const handleOnClose=()=>{
+       
+        const data=fetch(`${Api}/api/worker/cancel`,{
+                  method:'PUT',
+                  headers:{
+                     "Content-Type": "application/json" 
+                  },
+                  body:JSON.stringify({bookingId})
+              })
+              onClose();
+
+  }
   if (!provider) return null;
 
   const minutes = Math.floor(timeLeft / 60);
@@ -165,7 +180,7 @@ export default function BookingPendingOverlay({
 
           {/* CANCEL */}
           <button
-            onClick={onClose}
+            onClick={handleOnClose}
             className="mt-6 px-10 py-4 text-lg font-semibold text-white
                        rounded-2xl
                        bg-gradient-to-r from-blue-600 to-indigo-600

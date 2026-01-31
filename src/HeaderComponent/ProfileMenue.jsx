@@ -1,10 +1,12 @@
 import { useContext, useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../config/AuthContext";
 
 export default function ProfileMenu() {
   const { folkEmail } = useContext(AuthContext);
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const navigate = useNavigate();
 
   // Close on outside click
   useEffect(() => {
@@ -14,7 +16,8 @@ export default function ProfileMenu() {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   if (!folkEmail) return null;
@@ -47,9 +50,36 @@ export default function ProfileMenu() {
             Signed in as
           </p>
 
-          <p className="text-sm font-medium text-gray-900 break-all">
+          <p className="text-sm font-medium text-gray-900 break-all mb-3">
             {folkEmail}
           </p>
+
+          {/* Divider */}
+          <div className="h-px bg-gray-200 mb-3" />
+
+          {/* My Bookings Link */}
+          <button
+            onClick={() => {
+              navigate("/bookingsInform");
+              setOpen(false);
+            }}
+            className="w-full text-left px-3 py-2 rounded-xl
+                       text-sm font-medium text-gray-700
+                       hover:bg-gray-100 transition"
+          >
+            My Bookings
+          </button>
+          <button
+          onClick={()=>navigate('/service/waitingRoom')}
+      className="w-full flex items-center justify-between
+                 px-3 py-2 rounded-xl
+                 text-sm font-medium text-gray-700
+                 hover:bg-gray-100
+                 transition"
+    >
+      Find Work
+      <span className="text-gray-400">→</span>
+    </button>
         </div>
       )}
     </div>

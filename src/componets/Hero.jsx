@@ -17,7 +17,7 @@ const Api=import.meta.env.VITE_BACKEND_API;
 
 const Hero = () => {
 
-  const {signIn,signUp}=useContext(AuthContext);
+  const {signIn,signUp,setService}=useContext(AuthContext);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [location, setLocation] = useState("");
@@ -70,6 +70,7 @@ const handleSearchButton=async()=>{
      });
      const result=await response.json();
      const data=result.data;
+     setService(searchTerm);
      console.log(data);
      navigate('/search',{state:{data,lat,lng}});
 }

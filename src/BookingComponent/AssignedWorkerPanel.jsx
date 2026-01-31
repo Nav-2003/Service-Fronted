@@ -4,6 +4,8 @@ import socket from "../config/socket";
 import { useNavigate } from "react-router-dom";
 import handleCancelButton from "../config/handleCancelButton";
 import { AuthContext } from "../config/AuthContext";
+import FeedbackModal from "../TrackingSystem/FeedBackModel";
+import RazorpayPaymentModal from "../TrackingSystem/RozarPaymentModel";
 
 export default function AssignedWorkerPanel({ worker }) {
   const { folkEmail,bookingId } = useContext(AuthContext);
@@ -12,6 +14,9 @@ export default function AssignedWorkerPanel({ worker }) {
   const [workerEmail, setWorkerEmail] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [distance, setDistance] = useState(null);
+  const [showFeedback,setShowFeedback]=useState(false);
+  const [showPayment,setShowPayment]=useState(false);
+  console.log(worker.type)
 
   /* ================= SET EMAILS (SAFE) ================= */
   useEffect(() => {
@@ -52,13 +57,24 @@ export default function AssignedWorkerPanel({ worker }) {
 
     socket.on("cancelBooking", handleCancel);
     socket.on("liveDistance", handleLiveDistance);
+    socket.on("paymentResponse",({payment})=>{
+         setShowFeedback(true)
+    }) 
 
     return () => {
       clearInterval(intervalId);
       socket.off("cancelBooking", handleCancel);
       socket.off("liveDistance", handleLiveDistance);
+      socket.off("paymentResponse")
     };
   }, [workerEmail, customerEmail, worker.type, navigate]);
+
+
+  const handlePaymentSuccess = (response) => {
+  console.log("Payment completed", response);
+  socket.emit("paymentStatus",{bookingId});
+  navigate('/');
+};
 
   /* ================= UI ================= */
   return (
@@ -104,7 +120,7 @@ export default function AssignedWorkerPanel({ worker }) {
           <X className="w-5 h-5" />
           Cancel Booking
         </button>
-        <button
+       {worker.type==="customer"&&<button
   className="
     mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-2xl
     text-base font-semibold text-white
@@ -115,10 +131,41 @@ export default function AssignedWorkerPanel({ worker }) {
     active:scale-[0.97]
     transition-all duration-300
   "
+  onClick={()=>{
+    setShowPayment(true)
+  }}
 >
   <span className="text-lg">✔</span>
   Work Completed
-</button>
+</button>}
+
+{/* PAYMENT MODAL – ONLY FOR WORKER SIDE */}
+{worker?.type === "customer" && (
+  <RazorpayPaymentModal
+    open={showPayment}
+    onClose={() => setShowPayment(false)}
+    amount={1}
+    bookingId={bookingId}
+    user={{
+      name: "Naveen",
+      email: "xxx@gmail.com",
+      phone: "9198511333",
+    }}
+    onSuccess={handlePaymentSuccess}
+  />
+)}
+
+{/* FEEDBACK MODAL – ONLY FOR CUSTOMER SIDE */}
+
+  <FeedbackModal
+    open={showFeedback}
+    onClose={() => {
+      setShowFeedback(false) 
+      navigate('/')
+    }}
+    workerName="Naveen Kushawaha"
+  />
+
       </div>
     </div>
   );

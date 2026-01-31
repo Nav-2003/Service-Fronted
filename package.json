@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.17",
-    "axios": "^1.13.2",
+    "axios": "^1.13.4",
     "framer-motion": "^12.23.25",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.556.0",
