@@ -5,6 +5,7 @@ import ServiceCategories from "./componets/ServiceCategories"
 
 const Home=()=>{
     return <>
+    
     <Hero/>
     <ServiceCategories/>
     <HowItWorks/>

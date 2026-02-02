@@ -1,4 +1,4 @@
-import { Search, Navigation } from "lucide-react";
+import { Navigation } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import React, { useEffect, useState, useRef, useContext } from "react";
 import "leaflet/dist/leaflet.css";
@@ -8,6 +8,7 @@ import L from "leaflet";
 import BookingPendingOverlay from "../BookingComponent/BookingPending";
 import ProviderList from "../BookingComponent/ProviderList";
 import AssignedWorkerPanel from "../BookingComponent/AssignedWorkerPanel";
+import FeedbackPanel from "../TrackingSystem/FeedBackPanel";
 import { AuthContext } from "../config/AuthContext";
 
 const Api = import.meta.env.VITE_BACKEND_API;
@@ -51,64 +52,46 @@ export default function LocationSearchUI() {
 
   const location = useLocation();
 
-  /* ================= CUSTOMER LOCATION STATE ================= */
-
-  const [customerLocation, setCustomerLocation] = useState(() => {
-    if (location.state?.lat && location.state?.lng) {
-      return {
-        lat: location.state.lat,
-        lng: location.state.lng,
-      };
-    }
-    return null;
-  });
+  const [customerLocation, setCustomerLocation] = useState(
+    location.state?.lat && location.state?.lng
+      ? { lat: location.state.lat, lng: location.state.lng }
+      : null
+  );
 
   const customer = customerLocation
     ? [customerLocation.lat, customerLocation.lng]
     : [25.4432, 81.8479];
 
-  /* ================= PROVIDERS ================= */
-
-  const [providers, setProviders] = useState(
-    location.state?.data || []
-  );
-
+  const [providers, setProviders] = useState(location.state?.data || []);
   const [selectedId, setSelectedId] = useState(null);
   const [showPending, setShowPending] = useState(false);
   const [jobAccepted, setJobAccepted] = useState(false);
 
   const cardRefs = useRef({});
 
-  /* ================= FETCH LOCATION IF MISSING ================= */
+  /* ================= LOCATION ================= */
 
   useEffect(() => {
     if (!customerLocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        (pos) =>
           setCustomerLocation({
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
-          });
-        },
-        () => console.warn("Location permission denied")
+          }),
+        () => console.warn("Location denied")
       );
     }
   }, []);
 
-  /* ================= IMPROVED POLLING ================= */
+  /* ================= POLLING ================= */
 
   useEffect(() => {
     if (!customerLocation || !service) return;
 
-    let intervalId;
-    let isFetching = false;
-
     const fetchProviders = async () => {
-      if (isFetching) return; // prevent overlap
-      isFetching = true;
-
       try {
-        const response = await fetch(
+        const res = await fetch(
           `${Api}/api/serviceAvailable/getServiceData`,
           {
             method: "POST",
@@ -120,83 +103,38 @@ export default function LocationSearchUI() {
             }),
           }
         );
-
-        const result = await response.json();
-
-        setProviders((prev) => {
-          if (
-            selectedId &&
-            !result.data?.find((p) => p._id === selectedId)
-          ) {
-            setSelectedId(null);
-          }
-          return result.data || [];
-        });
-      } catch (err) {
-        console.error("Polling error:", err);
-      } finally {
-        isFetching = false;
+        const data = await res.json();
+        setProviders(data.data || []);
+      } catch (e) {
+        console.error(e);
       }
     };
 
-    // initial fetch
     fetchProviders();
+    const id = setInterval(fetchProviders, 5000);
+    return () => clearInterval(id);
+  }, [customerLocation, service]);
 
-    const startPolling = () => {
-      if (!intervalId) {
-        intervalId = setInterval(fetchProviders, 5000);
-      }
-    };
+  /* ================= BOOK ================= */
 
-    const stopPolling = () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
-    };
+  const handleBookNow = async (email) => {
+    setShowPending(true);
 
-    // pause when tab inactive
-    const handleVisibility = () => {
-      if (document.hidden) stopPolling();
-      else startPolling();
-    };
+    const res = await fetch(`${Api}/api/worker/assignWorker`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        custmorEmail: folkEmail,
+        workerEmail: email,
+        service,
+      }),
+    });
 
-    document.addEventListener("visibilitychange", handleVisibility);
+    const data = await res.json();
+    setBookingId(data.bookingId);
+  };
 
-    startPolling();
-
-    return () => {
-      stopPolling();
-      document.removeEventListener(
-        "visibilitychange",
-        handleVisibility
-      );
-    };
-  }, [customerLocation, service, selectedId]);
-
-  /* ================= LOCK SCROLL ================= */
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => (document.body.style.overflow = "auto");
-  }, []);
-
-  /* ================= AUTO SCROLL CARD ================= */
-
-  useEffect(() => {
-    if (selectedId && cardRefs.current[selectedId]) {
-      cardRefs.current[selectedId].scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
-    }
-  }, [selectedId]);
-
-  /* ================= DERIVED ================= */
-
-  const selectedProvider = providers.find(
-    (p) => p._id === selectedId
-  );
+  const selectedProvider = providers.find((p) => p._id === selectedId);
 
   const sortedProviders = [...providers].sort((a, b) => {
     if (a._id === selectedId) return -1;
@@ -204,34 +142,27 @@ export default function LocationSearchUI() {
     return 0;
   });
 
-  /* ================= BOOK HANDLER ================= */
-
-  const handleBookNow = async (email) => {
-    setShowPending(true);
-
-    const response = await fetch(
-      `${Api}/api/worker/assignWorker`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          custmorEmail: folkEmail,
-          workerEmail: email,
-          service,
-        }),
-      }
-    );
-
-    const data = await response.json();
-    setBookingId(data.bookingId);
-  };
-
   /* ================= RENDER ================= */
 
   return (
     <div className="h-screen w-full overflow-hidden flex flex-col lg:flex-row bg-gray-50">
+
+      {/* LEFT */}
+      {!jobAccepted ? (
+        <ProviderList
+          sortedProviders={sortedProviders}
+          selectedId={selectedId}
+          setSelectedId={setSelectedId}
+          cardRefs={cardRefs}
+          setShowPending={setShowPending}
+          handleBookNow={handleBookNow}
+        />
+      ) : (
+        <AssignedWorkerPanel worker={selectedProvider} />
+      )}
+
       {/* MAP */}
-      <div className="flex-1 relative order-first lg:order-last">
+      <div className="flex-1 relative">
         <MapContainer center={customer} zoom={13} className="h-full w-full">
           <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
 
@@ -243,18 +174,10 @@ export default function LocationSearchUI() {
             <Marker
               key={p._id}
               position={[Number(p.lat), Number(p.lng)]}
-              icon={
-                p._id === selectedId
-                  ? selectedWorkerIcon
-                  : workerIcon
-              }
-              eventHandlers={{
-                click: () => setSelectedId(p._id),
-              }}
+              icon={p._id === selectedId ? selectedWorkerIcon : workerIcon}
+              eventHandlers={{ click: () => setSelectedId(p._id) }}
             >
-              <Popup>
-                <b>{p.name}</b>
-              </Popup>
+              <Popup>{p.name}</Popup>
             </Marker>
           ))}
 
@@ -268,24 +191,18 @@ export default function LocationSearchUI() {
           )}
         </MapContainer>
 
-        <button className="absolute bottom-6 right-6 z-[1000] bg-white p-4 rounded-full shadow-xl">
+        <button className="absolute bottom-6 right-6 bg-white p-4 rounded-full shadow-xl">
           <Navigation className="w-5 h-5 text-blue-600" />
         </button>
       </div>
 
-      {/* LEFT PANEL */}
-      {!jobAccepted ? (
-        <ProviderList
-          sortedProviders={sortedProviders}
-          selectedId={selectedId}
-          setSelectedId={setSelectedId}
-          cardRefs={cardRefs}
-          setShowPending={setShowPending}
-          handleBookNow={handleBookNow}
-        />
-      ) : (
-        <AssignedWorkerPanel worker={selectedProvider} />
-      )}
+      {/* RIGHT FEEDBACK */}
+    {/* RIGHT FEEDBACK PANEL */}
+{selectedProvider && (
+  <div className="w-full lg:w-[20%] h-[40vh] lg:h-full border-l bg-white overflow-y-auto">
+    <FeedbackPanel selectedProvider={selectedProvider} />
+  </div>
+)}
 
       {/* OVERLAY */}
       {showPending && selectedProvider && (

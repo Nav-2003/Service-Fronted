@@ -34,7 +34,7 @@ function formatDateTime(timestamp) {
 /* ---------------- COMPONENT ---------------- */
 
 export default function BookingList({ status }) {
-  const { folkEmail } = useContext(AuthContext);
+  const { folkEmail,setBookingId } = useContext(AuthContext);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate=useNavigate();
@@ -145,7 +145,10 @@ export default function BookingList({ status }) {
 
               {/* MIDDLE (LIVE INDICATOR) */}
               {booking.status === "live" && (
-                <div  onClick={()=>navigate('/serivice/liveTracking')} className="mb-4 flex items-center gap-2 text-sm
+                <div  onClick={()=>{
+                  setBookingId(booking.bookingId)
+                  navigate('/serivice/liveTracking')
+                }} className="mb-4 flex items-center gap-2 text-sm
                                 text-blue-700 bg-blue-50
                                 px-3 py-2 rounded-xl cursor-pointer"
                           >

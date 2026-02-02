@@ -23,7 +23,7 @@ const Header = () => {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6 }}
-      className="bg-white border-b sticky top-0 z-50 shadow-sm"
+      className="bg-white border-b sticky top-0 z-[1100] shadow-sm"
     >
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         

@@ -157,14 +157,13 @@ export default function AssignedWorkerPanel({ worker }) {
 
 {/* FEEDBACK MODAL – ONLY FOR CUSTOMER SIDE */}
 
-  <FeedbackModal
-    open={showFeedback}
-    onClose={() => {
-      setShowFeedback(false) 
-      navigate('/')
-    }}
-    workerName="Naveen Kushawaha"
-  />
+<FeedbackModal
+  open={showFeedback}
+  onClose={() => setShowFeedback(false)}
+  workerName={"Naveen Kushawaha"}
+  bookingId={bookingId}
+/>
+
 
       </div>
     </div>
