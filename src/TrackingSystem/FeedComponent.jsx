@@ -1,76 +1,68 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
-const Api=import.meta.env.VITE_BACKEND_API
+const Api = import.meta.env.VITE_BACKEND_API;
 
 const FeedbackComponent = ({ provider }) => {
-  console.log(provider)
-  const [feedbacks] = useState([
-    {
-      id: 1,
-      userName: "Rajesh Kumar",
-      rating: 5,
-      date: "2 days ago",
-      comment:
-        "Excellent service! Very professional and fixed my plumbing issue quickly.",
-      verified: true,
-      helpful: 12,
-      serviceType: "Plumbing",
-    },
-    {
-      id: 2,
-      userName: "Priya Sharma",
-      rating: 4,
-      date: "1 week ago",
-      comment:
-        "Good work and on time. Pricing was reasonable and transparent.",
-      verified: true,
-      helpful: 8,
-      serviceType: "Plumbing",
-    },
-    {
-      id: 3,
-      userName: "Amit Patel",
-      rating: 5,
-      date: "2 weeks ago",
-      comment:
-        "Solved a problem others couldn’t fix. Worth every rupee.",
-      verified: false,
-      helpful: 15,
-      serviceType: "Plumbing",
-    },
-  ]);
-
+  const [feedbacks, setFeedbacks] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-      
-       const feedBackData=async()=>{
-            const data=await fetch(`${Api}/api/feedBackGet/getFeedback`,{
-                method:"Put",
-                headers:{
-                  "Content-Type":"Application/json"
-                },
-                body:JSON.stringify({email:provider.email})
-            });
-            const result=await data.json()
-            console.log(result)
-       }
-       feedBackData()
+    if (!provider?.email) return;
 
+    const fetchFeedbacks = async () => {
+      try {
+        setLoading(true);
+
+        const res = await fetch(
+          `${Api}/api/feedBackGet/getFeedback`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email: provider.email }),
+          }
+        );
+
+        const result = await res.json();
+        setFeedbacks(result.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeedbacks();
   }, [provider.email]);
+
+  /* ------------------ DERIVED DATA ------------------ */
 
   const filteredFeedbacks =
     filter === "all"
       ? feedbacks
       : feedbacks.filter((f) => f.rating === Number(filter));
 
-  const ratingStats = {
-    average: (
-      feedbacks.reduce((a, b) => a + b.rating, 0) /
-      feedbacks.length
-    ).toFixed(1),
-    total: feedbacks.length,
-  };
+  const total = feedbacks.length;
+  const average =
+    total > 0
+      ? (
+          feedbacks.reduce((sum, f) => sum + f.rating, 0) / total
+        ).toFixed(1)
+      : "0.0";
+
+  const ratingDistribution = [5, 4, 3, 2, 1].map((r) => {
+    const count = feedbacks.filter((f) => f.rating === r).length;
+    return {
+      rating: r,
+      count,
+      percent: total ? (count / total) * 100 : 0,
+    };
+  });
+
+  /* ------------------ HELPERS ------------------ */
 
   const renderStars = (rating) =>
     [...Array(5)].map((_, i) => (
@@ -84,7 +76,7 @@ const FeedbackComponent = ({ provider }) => {
       </span>
     ));
 
-  const getInitials = (name) =>
+  const getInitials = (name = "") =>
     name
       .split(" ")
       .map((n) => n[0])
@@ -92,31 +84,55 @@ const FeedbackComponent = ({ provider }) => {
       .slice(0, 2)
       .toUpperCase();
 
+  /* ------------------ UI ------------------ */
+
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50 rounded-2xl overflow-hidden">
       {/* HEADER */}
-      <div className="sticky top-0 bg-white border-b px-5 py-4 z-10">
-        <h2 className="text-lg font-semibold">
+      <div className="bg-white border-b px-6 py-5 sticky top-0 z-10">
+        <h2 className="text-xl font-bold mb-1">
           {provider.name} Reviews
         </h2>
+
         <div className="flex items-center gap-2 text-sm text-gray-500">
-          <span className="font-medium text-gray-900">
-            {ratingStats.average}
+          <span className="font-semibold text-gray-900">
+            {average}
           </span>
-          {renderStars(Math.round(ratingStats.average))}
-          <span>({ratingStats.total})</span>
+          {renderStars(Math.round(average))}
+          <span>({total})</span>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-2 mt-3">
+        {/* DISTRIBUTION */}
+        <div className="mt-4 space-y-1">
+          {ratingDistribution.map((r) => (
+            <div
+              key={r.rating}
+              className="flex items-center gap-2 text-xs"
+            >
+              <span className="w-6">{r.rating}★</span>
+              <div className="flex-1 h-2 bg-gray-200 rounded">
+                <div
+                  className="h-2 bg-yellow-400 rounded"
+                  style={{ width: `${r.percent}%` }}
+                />
+              </div>
+              <span className="w-6 text-right">
+                {r.count}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* FILTERS */}
+        <div className="flex gap-2 mt-4">
           {["all", 5, 4, 3, 2, 1].map((r) => (
             <button
               key={r}
               onClick={() => setFilter(String(r))}
-              className={`px-3 py-1 rounded-full text-xs font-medium ${
+              className={`px-3 py-1 rounded-full text-xs font-medium transition ${
                 filter === String(r)
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-600"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               {r === "all" ? "All" : `${r}★`}
@@ -125,47 +141,70 @@ const FeedbackComponent = ({ provider }) => {
         </div>
       </div>
 
-      {/* REVIEWS */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-        {filteredFeedbacks.map((f, idx) => (
-          <div
-            key={f.id}
-            className="bg-white rounded-xl p-4 shadow-sm"
-          >
-            <div className="flex gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
-                {getInitials(f.userName)}
+      {/* BODY */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        {/* LOADING */}
+        {loading &&
+          [1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-white p-4 rounded-xl animate-pulse"
+            >
+              <div className="flex gap-3">
+                <div className="w-10 h-10 bg-gray-200 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 bg-gray-200 rounded w-1/3" />
+                  <div className="h-3 bg-gray-200 rounded w-1/4" />
+                  <div className="h-3 bg-gray-200 rounded w-full" />
+                </div>
               </div>
+            </div>
+          ))}
 
-              <div className="flex-1">
-                <div className="flex justify-between">
-                  <span className="font-semibold text-sm">
-                    {f.userName}
-                  </span>
-                  <span className="text-xs text-gray-400">
-                    {f.date}
-                  </span>
+        {/* REVIEWS */}
+        {!loading &&
+          filteredFeedbacks.map((f) => (
+            <motion.div
+              key={f._id}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="bg-white rounded-xl p-4 shadow-sm"
+            >
+              <div className="flex gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+                  {getInitials(f.name)}
                 </div>
 
-                <div className="flex items-center gap-2 mt-1">
-                  {renderStars(f.rating)}
-                  {f.verified && (
+                <div className="flex-1">
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-sm">
+                      {f.name}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {new Date(f.time).toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-1">
+                    {renderStars(f.rating)}
                     <span className="text-xs text-green-600 font-medium">
                       Verified
                     </span>
-                  )}
+                  </div>
+
+                  <p className="text-sm text-gray-600 mt-2">
+                    {f.text}
+                  </p>
                 </div>
-
-                <p className="text-sm text-gray-600 mt-2">
-                  {f.comment}
-                </p>
               </div>
-            </div>
-          </div>
-        ))}
+            </motion.div>
+          ))}
 
-        {filteredFeedbacks.length === 0 && (
-          <div className="text-center text-sm text-gray-400 mt-10">
+        {/* EMPTY */}
+        {!loading && filteredFeedbacks.length === 0 && (
+          <div className="text-center mt-16 text-gray-400">
+            <div className="text-4xl mb-2">🫶</div>
             No reviews for this rating
           </div>
         )}

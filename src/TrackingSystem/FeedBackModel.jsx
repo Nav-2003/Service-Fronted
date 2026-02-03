@@ -17,9 +17,7 @@ export default function FeedbackModal({
   const [comment, setComment] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
-
   const handleSubmit = async () => {
     if (rating === 0 || loading) return;
 
@@ -59,7 +57,6 @@ export default function FeedbackModal({
     });
 
     const timer = setTimeout(() => {
-      onClose();
       navigate("/");
     }, 2000);
 

@@ -3,8 +3,7 @@ import FeedbackComponent from "./FeedComponent";
 import { Star } from "lucide-react";
 
 export default function FeedbackPanel({ selectedProvider }) {
-  console.log(selectedProvider);
-  return (
+   return (
     <AnimatePresence mode="wait">
       {!selectedProvider ? (
         /* PREMIUM EMPTY STATE */
